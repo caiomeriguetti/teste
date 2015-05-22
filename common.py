@@ -76,7 +76,7 @@ class Reader():
         
         dbprice = float(dbdata["price"])
         
-        if price > dbprice or price < dbprice:
+        if (price > dbprice or price < dbprice) and price != False and dbprice > 0:
             print "newprice ", price
             c.execute("insert into prices (track_id, price, `when`) values (%s, %s, %s)", (dbdata["id"], price, datetime.datetime.now()))
             db.commit()
