@@ -53,17 +53,20 @@ class Miner():
 
 class Reader():
     
-    def sync(self, url):
+    def sync(self, track):
+        url = track["url"]
         resp = requests.get(url)
         
         s = BeautifulSoup(resp.text)
 
         title = self.get_title(s)
         price = self.get_price(s)
+        
+        print track["id"], price
             
         db = connection()
         c = db.cursor()
-        c.execute(""" select * from track where url = %s """, (url,))
+        c.execute(""" select * from track where url = %s""", (url,))
         r = dict_gen(c)
         dbdata = None
         for track in r:
@@ -76,26 +79,27 @@ class Reader():
         
         dbprice = float(dbdata["price"])
         
-        if (price > dbprice or price < dbprice) and price != False and dbprice > 0:
+        if price > dbprice or price < dbprice:
             print "newprice ", price
             c.execute("insert into prices (track_id, price, `when`) values (%s, %s, %s)", (dbdata["id"], price, datetime.datetime.now()))
             db.commit()
             c.execute("update track set price = %s, title = %s, `when` = %s where id = %s", (price, title, datetime.datetime.now(), dbdata["id"]))
             db.commit()
             
-            to = 'caiomeriguetti@gmail.com'
-            gmail_user = 'caiomeriguetti@gmail.com'
-            gmail_pwd = 'izszygyncvtfwicz'
-            smtpserver = smtplib.SMTP("smtp.gmail.com",587)
-            smtpserver.ehlo()
-            smtpserver.starttls()
-            smtpserver.ehlo
-            smtpserver.login(gmail_user, gmail_pwd)
-            header = 'To:' + to + '\n' + 'From: ' + gmail_user + '\n' + 'Subject:Price Change - '+safe_str(title)+' \n'
-            msg = header + '\n Price changed from '+str(dbprice)+' to '+str(price)+' \n\n'
-            msg = msg + '\n\n '+url+' \n\n'
-            smtpserver.sendmail(gmail_user, to, msg)
-            smtpserver.close()
+            if price != False and dbprice > 0:
+                to = 'caiomeriguetti@gmail.com'
+                gmail_user = 'caiomeriguetti@gmail.com'
+                gmail_pwd = 'izszygyncvtfwicz'
+                smtpserver = smtplib.SMTP("smtp.gmail.com",587)
+                smtpserver.ehlo()
+                smtpserver.starttls()
+                smtpserver.ehlo
+                smtpserver.login(gmail_user, gmail_pwd)
+                header = 'To:' + to + '\n' + 'From: ' + gmail_user + '\n' + 'Subject:Price Change - '+safe_str(title)+' \n'
+                msg = header + '\n Price changed from '+str(dbprice)+' to '+str(price)+' \n\n'
+                msg = msg + '\n\n '+url+' \n\n'
+                smtpserver.sendmail(gmail_user, to, msg)
+                smtpserver.close()
         
         c.close()
         db.close()

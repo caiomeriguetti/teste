@@ -22,7 +22,7 @@ def syncTracks():
         db = connection()
         c = db.cursor()
         
-        c.execute("select * from track")
+        c.execute("select * from track order by id desc")
         r = dict_gen(c)
         
         for track in r:
@@ -31,7 +31,9 @@ def syncTracks():
             domain = '{uri.netloc}'.format(uri=parsed_uri)
             
             customreader = readers[domain]()
-            customreader.sync(track["url"])
+            customreader.sync(track)
+            
+            time.sleep(5)
             
 
         
