@@ -6,7 +6,7 @@ import MySQLdb
 import datetime
 import time
 import smtplib
-from urlparse import urlparse
+from urlparse import urlparse, parse_qs
 
 sync_urls_delay = 10
 check_new_minig_requests_delay = 10
@@ -49,6 +49,22 @@ class Miner():
         
         
         return None
+    
+    def mine(self, url):
+        itens = self.get_itens(url)
+        
+        db = connection()
+        c = db.cursor()
+        
+        for url in itens:
+            c.execute("select id from track where url=%s", (url, ))
+            if not c.rowcount:
+                c.execute("insert into track (title, price, `when`, url) values (%s, %s, %s, %s)", ("empty", 0.0, datetime.datetime.now(), url))
+                db.commit()
+            
+        c.close()
+        db.close()
+        
         
 
 class Reader():
@@ -87,6 +103,14 @@ class Reader():
             db.commit()
             
             if price != False and dbprice > 0:
+                
+                if price > dbprice:
+                    pct = (price - dbprice)/(dbprice)
+                    label = str(int(pct*100)) + "% Price UP"
+                else:
+                    pct = (dbprice - price)/(dbprice)
+                    label = str(int(pct*100)) + "% Price DOWN"
+                    
                 to = 'caiomeriguetti@gmail.com'
                 gmail_user = 'caiomeriguetti@gmail.com'
                 gmail_pwd = 'izszygyncvtfwicz'
@@ -95,7 +119,7 @@ class Reader():
                 smtpserver.starttls()
                 smtpserver.ehlo
                 smtpserver.login(gmail_user, gmail_pwd)
-                header = 'To:' + to + '\n' + 'From: ' + gmail_user + '\n' + 'Subject:Price Change - '+safe_str(title)+' \n'
+                header = 'To:' + to + '\n' + 'From: ' + gmail_user + '\n' + 'Subject:'+label+' - '+safe_str(title)+' \n'
                 msg = header + '\n Price changed from '+str(dbprice)+' to '+str(price)+' \n\n'
                 msg = msg + '\n\n '+url+' \n\n'
                 smtpserver.sendmail(gmail_user, to, msg)

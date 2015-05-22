@@ -11,9 +11,11 @@ from common import connection, dict_gen, safe_str, sync_urls_delay, check_new_mi
 import americanas, pontofrio
 
 readers = {"www.americanas.com.br": americanas.CustomReader,
-           "www.pontofrio.com.br": pontofrio.CustomReader}
+           "www.pontofrio.com.br": pontofrio.CustomReader,
+           "produto.pontofrio.com.br": pontofrio.CustomReader,}
 
-miners = {"busca.americanas.com.br": americanas.CustomMiner}
+miners = {"busca.americanas.com.br": americanas.CustomMiner,
+          "search.pontofrio.com.br": pontofrio.CustomMiner}
 
 def syncTracks():
 
@@ -62,7 +64,7 @@ def mineData():
             print "new mining request", req["url"], domain
             
             miner = miners[domain]()
-            itens = miner.get_itens(req["url"])
+            itens = miner.mine(req["url"])
             c2.execute("update mine_data_requests set done=1 where id=%s",(req["id"],))
             db.commit()
             

@@ -13,21 +13,14 @@ class CustomMiner(Miner):
         
         s = BeautifulSoup(resp.text)
         itens = s.findAll("div", {"class": "productImg"})
-        db = connection()
-        c = db.cursor()
-        
+        mined = []
         for item in itens:
             url = item.find("a", {"class": "url"})["href"]
             parsed_uri = urlparse(url)
             trueurl = parse_qs(parsed_uri.query)["link"][0]
-            
-            c.execute("select id from track where url=%s", (trueurl,))
-            if not c.rowcount:
-                c.execute("insert into track (title, price, `when`, url) values (%s, %s, %s, %s)", ("empty", 0.0, datetime.datetime.now(), trueurl))
-                db.commit()
-            
-        c.close()
-        db.close()
+            mined.append(theurl)
+        
+        return mined
 
 class CustomReader(Reader):
     

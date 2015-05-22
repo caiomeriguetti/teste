@@ -1,8 +1,25 @@
 #coding=utf-8
 import requests
 from bs4 import BeautifulSoup
-from common import connection, dict_gen, safe_str, safe_unicode, Reader
+from common import connection, dict_gen, safe_str, safe_unicode, Reader, Miner
 import time, datetime, smtplib
+from urlparse import urlparse, parse_qs
+
+class CustomMiner(Miner):
+    
+    def get_itens(self, url):
+        
+        resp = requests.get(url)
+        
+        s = BeautifulSoup(resp.text)
+        itens = s.findAll("div", {"class": "hproduct"})
+
+        mined = []
+        for item in itens:
+            url = item.find("a", {"class": "link"})["title"]
+            mined.append(url)
+            
+        return mined
 
 class CustomReader(Reader):
     
