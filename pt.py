@@ -7,14 +7,16 @@ import datetime
 import time
 import smtplib
 from urlparse import urlparse
-from common import connection, dict_gen, safe_str, delay, check_new_urls_delay
+from common import connection, dict_gen, safe_str, sync_urls_delay, check_new_minig_requests_delay
 import americanas, pontofrio
 
 readers = {"www.americanas.com.br": americanas.CustomReader,
            "www.pontofrio.com.br": pontofrio.CustomReader}
 
+miners = {"busca.americanas.com.br": americanas.CustomMiner}
+
 def syncTracks():
-    tracking = []
+
     while True:
         
         db = connection()
@@ -24,23 +26,49 @@ def syncTracks():
         r = dict_gen(c)
         
         for track in r:
+
+            parsed_uri = urlparse(track["url"])
+            domain = '{uri.netloc}'.format(uri=parsed_uri)
             
-            if track["url"] not in tracking:
-                
-                parsed_uri = urlparse(track["url"])
-                domain = '{uri.netloc}'.format(uri=parsed_uri)
-                
-                print "new url", track["url"], domain
-                
-                customreader = readers[domain]()
-                customreader.url = track["url"]
-                customreader.start()
-                
-                tracking.append(track["url"])
+            customreader = readers[domain]()
+            customreader.sync(track["url"])
+            
+
         
         c.close()
         db.close()
         
-        time.sleep(check_new_urls_delay)
+        time.sleep(sync_urls_delay)
 
 Thread(target=syncTracks).start()
+
+def mineData():
+    tracking = []
+    while True:
+        
+        db = connection()
+        c = db.cursor()
+        c2 = db.cursor()
+        
+        c.execute("select * from mine_data_requests where done=0")
+        r = dict_gen(c)
+        
+        for req in r:
+            parsed_uri = urlparse(req["url"])
+            domain = '{uri.netloc}'.format(uri=parsed_uri)
+            
+            print "new mining request", req["url"], domain
+            
+            miner = miners[domain]()
+            itens = miner.get_itens(req["url"])
+            c2.execute("update mine_data_requests set done=1 where id=%s",(req["id"],))
+            db.commit()
+            
+            print itens
+        
+        c.close()
+        db.close()
+        
+        time.sleep(check_new_minig_requests_delay)
+
+Thread(target=mineData).start()

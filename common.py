@@ -1,9 +1,15 @@
 #coding=utf-8
-import MySQLdb
 from threading import Thread
+import requests
+from bs4 import BeautifulSoup
+import MySQLdb
+import datetime
+import time
+import smtplib
+from urlparse import urlparse
 
-delay = 20 # seconds
-check_new_urls_delay = 10
+sync_urls_delay = 10
+check_new_minig_requests_delay = 10
 
 def dict_gen(curs):
     ''' From Python Essential Reference by David Beazley
@@ -37,9 +43,59 @@ def safe_str(obj):
         # obj is unicode
         return unicode(obj).encode('unicode_escape')
 
-class Reader(Thread):
+class Miner():
+
+    def get_itens(self, url):
+        
+        
+        return None
+        
+
+class Reader():
     
-    url = None    
-    
-    def run(self):
-       pass 
+    def sync(self, url):
+        resp = requests.get(url)
+        
+        s = BeautifulSoup(resp.text)
+
+        title = self.get_title(s)
+        price = self.get_price(s)
+            
+        db = connection()
+        c = db.cursor()
+        c.execute(""" select * from track where url = %s """, (url,))
+        r = dict_gen(c)
+        dbdata = None
+        for track in r:
+            dbdata = track
+        
+        if not(dbdata):
+            c.execute("insert into track (url, `when`, price, title) values (%s, %s, %s, %s)", (url, datetime.datetime.now(), price, title))
+            db.commit()
+            return
+        
+        dbprice = float(dbdata["price"])
+        
+        if price > dbprice or price < dbprice:
+            print "newprice ", price
+            c.execute("insert into prices (track_id, price, `when`) values (%s, %s, %s)", (dbdata["id"], price, datetime.datetime.now()))
+            db.commit()
+            c.execute("update track set price = %s, title = %s, `when` = %s where id = %s", (price, title, datetime.datetime.now(), dbdata["id"]))
+            db.commit()
+            
+            to = 'caiomeriguetti@gmail.com'
+            gmail_user = 'caiomeriguetti@gmail.com'
+            gmail_pwd = 'izszygyncvtfwicz'
+            smtpserver = smtplib.SMTP("smtp.gmail.com",587)
+            smtpserver.ehlo()
+            smtpserver.starttls()
+            smtpserver.ehlo
+            smtpserver.login(gmail_user, gmail_pwd)
+            header = 'To:' + to + '\n' + 'From: ' + gmail_user + '\n' + 'Subject:Price Change - '+safe_str(title)+' \n'
+            msg = header + '\n Price changed from '+str(dbprice)+' to '+str(price)+' \n\n'
+            msg = msg + '\n\n '+url+' \n\n'
+            smtpserver.sendmail(gmail_user, to, msg)
+            smtpserver.close()
+        
+        c.close()
+        db.close()

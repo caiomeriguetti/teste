@@ -1,71 +1,52 @@
 #coding=utf-8
 import requests
 from bs4 import BeautifulSoup
-from common import delay, connection, dict_gen, safe_str, Reader
+from common import connection, dict_gen, safe_str, Reader, Miner
 import time, datetime, smtplib
+from urlparse import urlparse, parse_qs
+
+class CustomMiner(Miner):
+    
+    def get_itens(self, url):
+        
+        resp = requests.get(url)
+        
+        s = BeautifulSoup(resp.text)
+        itens = s.findAll("div", {"class": "productImg"})
+        db = connection()
+        c = db.cursor()
+        
+        for item in itens:
+            url = item.find("a", {"class": "url"})["href"]
+            parsed_uri = urlparse(url)
+            trueurl = parse_qs(parsed_uri.query)["link"][0]
+            
+            c.execute("select id from track where url=%s", (trueurl,))
+            if not c.rowcount:
+                c.execute("insert into track (title, price, `when`, url) values (%s, %s, %s, %s)", ("empty", 0.0, datetime.datetime.now(), trueurl))
+                db.commit()
+            
+        c.close()
+        db.close()
 
 class CustomReader(Reader):
     
-    def run(self):
-        url = self.url
-        while True:
-        
-            resp = requests.get(url)
-            
-            s = BeautifulSoup(resp.text)
+    def get_title(self, soup):
+        try:
+           tit = soup.find("h1",{"class": "mp-tit-name"})
+           title = tit["title"]
+           return title
+        except:
+           title = ""
+           return False
+    
+    def get_price(self, soup):
 
-            try:
-                tit = s.find("h1",{"class": "mp-tit-name"})
-                title = tit["title"]
-            except:
-                title = ""
-                print "Error reading the title: ", url 
-            
-            try:
-                price = s.find("div",{"class": "mp-price"})
-                price = price.findAll("span")[1].text.split(" ")[1].replace(".","")
-                price = float(price.replace(",", "."))
-            except:
-                price = 0.0
-                print "Error reading the price: ", url
-                
-            db = connection()
-            c = db.cursor()
-            c.execute(""" select * from track where url = %s """, (url,))
-            r = dict_gen(c)
-            dbdata = None
-            for track in r:
-                dbdata = track
-            
-            if not(dbdata):
-                c.execute("insert into track (url, `when`, price, title) values (%s, %s, %s, %s)", (url, datetime.datetime.now(), price, title))
-                db.commit()
-                return
-            
-            dbprice = float(dbdata["price"])
-            
-            if price > dbprice or price < dbprice:
-                print "newprice ", price
-                c.execute("insert into prices (track_id, price, `when`) values (%s, %s, %s)", (dbdata["id"], price, datetime.datetime.now()))
-                db.commit()
-                c.execute("update track set price = %s, title = %s, `when` = %s where id = %s", (price, title, datetime.datetime.now(), dbdata["id"]))
-                db.commit()
-                
-                to = 'caiomeriguetti@gmail.com'
-                gmail_user = 'caiomeriguetti@gmail.com'
-                gmail_pwd = 'izszygyncvtfwicz'
-                smtpserver = smtplib.SMTP("smtp.gmail.com",587)
-                smtpserver.ehlo()
-                smtpserver.starttls()
-                smtpserver.ehlo
-                smtpserver.login(gmail_user, gmail_pwd)
-                header = 'To:' + to + '\n' + 'From: ' + gmail_user + '\n' + 'Subject:Price Change - '+safe_str(title)+' \n'
-                msg = header + '\n Price changed from '+str(dbprice)+' to '+str(price)+' \n\n'
-                msg = msg + '\n\n '+url+' \n\n'
-                smtpserver.sendmail(gmail_user, to, msg)
-                smtpserver.close()
-            
-            c.close()
-            db.close()
-                
-            time.sleep(delay)
+        try:
+            price = soup.find("div",{"class": "mp-price"})
+            price = price.findAll("span")[1].text.split(" ")[1].replace(".","")
+            price = float(price.replace(",", "."))
+            return price
+        except:
+            price = 0.0
+            return False
