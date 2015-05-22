@@ -24,13 +24,20 @@ class CustomMiner(Miner):
 class CustomReader(Reader):
     
     def get_title(self, soup):
-        tit = soup.find("div",{"class": "produtoNome"})
-        title = tit.find("b").text.encode("utf8", errors="ignore")
-        
+        title = ""
+        try:
+            tit = soup.find("div",{"class": "produtoNome"})
+            title = tit.find("b").text.encode("utf8", errors="ignore")
+        except:
+            title = "problem"
+            
         return title
     
     def get_price(self, soup):
-        price = soup.find("i",{"class": "price"})
-        price = price.text.replace(".","")
-        price = float(price.replace(",", "."))
+        try:
+            price = soup.find("i",{"class": "price"})
+            price = price.text.replace(".","")
+            price = float(price.replace(",", "."))
+        except:
+            price = 0.0
         return price
