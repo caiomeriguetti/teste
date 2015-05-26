@@ -1,0 +1,23 @@
+ul {
+	list-style: none;
+	padding: 0;
+}
+
+.notification-container {
+	padding:10px 0 10px 0;
+}
+
+.notification-container .pct {
+	margin-right: 10px;
+}
+
+
+.notification:hover {
+	background: #e5e5e5;
+}
+
+
+.search-input {
+	margin-top:15px;
+	
+}

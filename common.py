@@ -82,6 +82,7 @@ class Reader():
             
         db = connection()
         c = db.cursor()
+        c2 = db.cursor()
         c.execute(""" select * from track where url = %s""", (url,))
         r = dict_gen(c)
         dbdata = None
@@ -110,7 +111,11 @@ class Reader():
                 else:
                     pct = (dbprice - price)/(dbprice)
                     label = str(int(pct*100)) + "% Price DOWN"
-                    
+                
+                c2.execute("insert into notifications (from_price, to_price, `when`, url, title) values (%s, %s, %s, %s, %s)", (dbprice, price, datetime.datetime.now(), url, title))
+                db.commit()
+                
+                """
                 to = 'caiomeriguetti@gmail.com'
                 gmail_user = 'caiomeriguetti@gmail.com'
                 gmail_pwd = 'izszygyncvtfwicz'
@@ -123,7 +128,7 @@ class Reader():
                 msg = header + '\n Price changed from '+str(dbprice)+' to '+str(price)+' \n\n'
                 msg = msg + '\n\n '+url+' \n\n'
                 smtpserver.sendmail(gmail_user, to, msg)
-                smtpserver.close()
+                smtpserver.close()"""
         
         c.close()
         db.close()
