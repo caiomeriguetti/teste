@@ -1,5 +1,11 @@
 eclipse.preferences.version=1
+encoding//ptweb/frontend/views.py=utf8
 encoding/americanas.py=utf-8
+encoding/azul.py=utf8
+encoding/cheapfly.py=utf8
 encoding/common.py=utf-8
+encoding/dataconv.py=utf8
+encoding/datamocks.py=utf8
 encoding/pontofrio.py=utf-8
 encoding/pt.py=utf-8
+encoding/voegol.py=utf8

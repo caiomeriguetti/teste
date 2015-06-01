@@ -132,3 +132,12 @@ class Reader():
         
         c.close()
         db.close()
+
+
+class TicketSearcher():
+    
+    def search(self, from_airport, to_airport, departure_date, return_date):
+        pass
+        
+        
+    
